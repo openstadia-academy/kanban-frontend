@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import type {Board} from "@/models/board";
-import {boardService} from "@/services/BoardService";
+import type { Board } from '@/models/board'
 
 const props = defineProps<{
   board: Board
 }>()
 
-const onDelete = () => {
-  boardService.deleteById(props.board.id)
-}
+const emit = defineEmits<{
+  (e: 'delete', id: string): void
+}>()
 </script>
 
 <template>
   <div class="board-item">
     <div>{{ props.board.title }}</div>
 
-    <div class="delete" @click.stop="onDelete">X</div>
+    <div class="delete" @click.stop="emit('delete', board.id)">X</div>
   </div>
 </template>
 

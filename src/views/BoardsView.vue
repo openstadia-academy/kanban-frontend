@@ -1,34 +1,56 @@
 <script setup lang="ts">
-import type {Board} from "@/models/Board";
-import BoardItem from "@/components/BoardItem.vue";
-import {boardService} from "@/services/BoardService";
-import {useRouter} from "vue-router";
-import EditableText from "@/components/EditableText.vue";
-
-const boards = boardService.getAll()
+import type { Board } from '@/models/Board'
+import BoardItem from '@/components/BoardItem.vue'
+import { useRouter } from 'vue-router'
+import EditableText from '@/components/EditableText.vue'
+import { onMounted, ref } from 'vue'
+import { create, deleteById, getAll } from '@/apis/boards'
 
 const router = useRouter()
+const boards = ref<Board[]>([])
 
+onMounted(async () => {
+  boards.value = await getAll()
+})
 const onBoardClick = (board: Board) => {
   router.push('/boards/' + board.id)
 }
 
-const onAddBoard = (value: string) => {
-  boardService.create({
+const onAddBoard = async (value: string) => {
+  const board = await create({
     title: value
   })
+
+  if (board) {
+    boards.value.push(board)
+  }
 }
 
+const onDelete = async (id: string) => {
+  const board = await deleteById(id)
+
+  if (!board) {
+    return
+  }
+
+  boards.value = boards.value.filter((b) => b.id != board.id)
+}
 </script>
 
 <template>
   <div class="boards-view">
-    <BoardItem class="board-item" v-for="board in boards" :key="board.id" :board="board" @click="onBoardClick(board)"/>
+    <BoardItem
+      class="board-item"
+      v-for="board in boards"
+      :key="board.id"
+      :board="board"
+      @click="onBoardClick(board)"
+      @delete="onDelete"
+    />
 
     <div class="add-board">
-      <EditableText text="Add Board" @change="onAddBoard"/>
+      <EditableText text="Add Board" @change="onAddBoard" />
     </div>
-
   </div>
 </template>
 

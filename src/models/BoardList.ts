@@ -1,10 +1,11 @@
-export interface BoardList {
-  id: string
+export interface BoardListBase {
   title: string
   board_id: string
+  index: number
 }
 
-export interface BoardListCreate {
-  title: string
-  board_id: string
+export interface BoardList extends BoardListBase {
+  id: string
 }
+
+export interface BoardListCreate extends BoardListBase {}

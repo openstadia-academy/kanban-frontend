@@ -1,35 +1,59 @@
 <script setup lang="ts">
-import Draggable from "vuedraggable"
-import type {BoardList} from "@/models/BoardList";
-import BoardTaskItem from "@/components/BoardTaskItem.vue";
-import {boardListService} from "@/services/BoardListService";
-import EditableText from "@/components/EditableText.vue";
-import {boardTaskService} from "@/services/BoardTaskService";
+import Draggable from 'vuedraggable'
+import type { BoardList } from '@/models/BoardList'
+import BoardTaskItem from '@/components/BoardTaskItem.vue'
+import EditableText from '@/components/EditableText.vue'
+import { create, getByListId } from '@/apis/boardTask'
+import { onMounted, ref } from 'vue'
+import type { BoardTask } from '@/models/BoardTask'
 
 const props = defineProps<{
   boardList: BoardList
 }>()
 
-const tasks = boardTaskService.getByListId(props.boardList.id)
+const emit = defineEmits<{
+  (e: 'delete', id: string): void
+}>()
 
-const onAddTask = (value: string) => {
-  const tasksValue = tasks.value;
+const tasks = ref<BoardTask[]>([])
+
+onMounted(async () => {
+  tasks.value = await getByListId(props.boardList.id)
+})
+
+const onAddTask = async (value: string) => {
+  const tasksValue = tasks.value
   let index = 0
   if (tasksValue.length > 0) {
-    index = tasksValue[tasksValue.length - 1].index + 1
+    const lastIndex = tasksValue.length - 1
+    index = tasksValue[lastIndex].index + 1
   }
 
-  boardTaskService.create({
+  const task = await create({
     title: value,
     index: index,
     list_id: props.boardList.id
   })
-}
 
-const onDeleteList = () => {
-  boardListService.deleteById(props.boardList.id)
-}
+  if (!task) {
+    return
+  }
 
+  tasks.value.push(task)
+}
+const onChange = async ({ moved }) => {
+  const newIndex = moved.newIndex
+  const lastIndex = tasks.value.length - 1
+
+  let index
+  if (newIndex == 0) {
+    index = tasks.value[1].index - 1
+  } else if (newIndex == lastIndex) {
+    index = tasks.value[lastIndex - 1].index + 1
+  } else {
+    index = (tasks.value[newIndex - 1].index + tasks.value[newIndex + 1].index) / 2
+  }
+}
 </script>
 
 <template>
@@ -37,21 +61,16 @@ const onDeleteList = () => {
     <div class="header">
       <div class="title">{{ boardList.title }}</div>
 
-      <div class="delete" @click.stop="onDeleteList">X</div>
+      <div class="delete" @click.stop="emit('delete', boardList.id)">X</div>
     </div>
 
-    <div class="add-task" @click="addTask">
-      <EditableText text="Add task" @change="onAddTask"/>
+    <div class="add-task">
+      <EditableText text="Add task" @change="onAddTask" />
     </div>
 
-    <Draggable
-        class="list-group"
-        :list="tasks"
-        group="tasks"
-        itemKey="id"
-    >
+    <Draggable class="list-group" :list="tasks" group="tasks" itemKey="id" @change="onChange">
       <template #item="{ element }">
-        <BoardTaskItem :board-task="element"/>
+        <BoardTaskItem :board-task="element" />
       </template>
     </Draggable>
   </div>
